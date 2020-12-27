@@ -1,0 +1,3 @@
+.vscode
+__pycache__
+weather_stations_pb2.py

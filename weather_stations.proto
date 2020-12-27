@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+message SensorData {
+    string location = 1;
+    string measurement = 2;
+    float value = 3;
+}

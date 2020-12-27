@@ -1,8 +1,9 @@
 import re
-from typing import NamedTuple
 
+import weather_stations_pb2
 import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
+
 
 INFLUXDB_ADDRESS = '127.0.0.1'
 INFLUXDB_USER = 'mqtt'
@@ -18,11 +19,6 @@ MQTT_CLIENT_ID = 'Influx-Client'
 
 influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB_PASSWORD, None)
 
-class SensorData(NamedTuple):
-    location: str
-    measurement: str
-    value: float
-
 def on_connect(client, userdata, flags, rc):
     """ The callback for when the client receives a CONNACK response from the server."""
     print('Connected with result code ' + str(rc))
@@ -30,35 +26,37 @@ def on_connect(client, userdata, flags, rc):
 
 def _parse_mqtt_message(topic, payload):
     match = re.match(MQTT_REGEX, topic)
+    response = weather_stations_pb2.SensorData()
     if match:
-        location = match.group(1)
-        measurement = match.group(2)
-        if measurement == 'status':
+        response.ParseFromString(payload)
+        response.location = match.group(1)
+        if response.measurement == 'status':
             return None
-        return SensorData(location, measurement, float(payload))
+        return response
     else:
         return None
 
-def _send_sensor_data_to_influxdb(sensor_data):
+def _send_sensor_data_to_influxdb(response):
     json_body = [
         {
-            'measurement': sensor_data.measurement,
+            'measurement': response.measurement,
             'tags': {
-                'location': sensor_data.location
+                'location': response.location
             },
             'fields': {
-                'value': sensor_data.value
+                'value': response.value
             }
         }
     ]
+    print(json_body)
     influxdb_client.write_points(json_body)
 
 def on_message(client, userdata, msg):
     """The callback for when a PUBLISH message is received from the server."""
     print(msg.topic + ' ' + str(msg.payload))
-    sensor_data = _parse_mqtt_message(msg.topic, msg.payload.decode('utf-8'))
-    if sensor_data is not None:
-        _send_sensor_data_to_influxdb(sensor_data)
+    response = _parse_mqtt_message(msg.topic, msg.payload)
+    if response is not None:
+        _send_sensor_data_to_influxdb(response)
 
 def _init_influxdb_database():
     databases = influxdb_client.get_list_database()
