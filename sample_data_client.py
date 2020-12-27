@@ -2,8 +2,8 @@ import weather_stations_pb2
 import paho.mqtt.client as mqtt
 
 MQTT_ADDRESS = '0.0.0.0'
-MQTT_USER = 'kdelassus'
-MQTT_PASSWORD = 'kdelassus'
+MQTT_USER = 'weather'
+MQTT_PASSWORD = 'weather'
 MQTT_TOPIC = 'home/+/+'
 MQTT_CLIENT_ID = 'Data-Client'
 HUMIDITY_TOPIC = "home/livingroom/humidity"
